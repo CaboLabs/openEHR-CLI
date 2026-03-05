@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
-MCP server that exposes openEHR-CLI commands as tools for LLMs.
+MCP server wrapping the openEHR SDK CLI (sdk command).
 
-This server bridges the Model Context Protocol (MCP) with the openEHR-CLI
-Groovy application, allowing LLMs like Claude to call CLI commands as tools.
+Commands exposed as MCP tools:
+  optval            - Validate an OPT file against the openEHR XSD schema
+  ingen             - Generate instances (COMPOSITION etc.) from an OPT
+  inval             - Validate XML/JSON instances against schemas
+  adl2opt           - Convert an ADL archetype to OPT
+  trans_opt         - Transform OPT from XML to JSON
+  trans_locatable   - Transform a Locatable between XML and JSON
+  uigen             - Generate a Bootstrap HTML UI from an OPT
 
-Transport: stdio (JSON-RPC 2.0)
+Transport: stdio (JSON-RPC 2.0 / MCP)
 """
 
-import subprocess
-import json
 import asyncio
+import json
+import subprocess
 from pathlib import Path
 
 from mcp.server import Server
@@ -22,173 +28,291 @@ from mcp.types import Tool, TextContent
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).parent.parent.resolve()
-CLI_PATH = _REPO_ROOT / "app" / "build" / "install" / "app" / "bin" / "app"
+_CLI = _REPO_ROOT / "app" / "build" / "install" / "app" / "bin" / "app"
 
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
 
-def run_cli(*args: str) -> str:
-    """Run the openEHR-CLI binary with the given arguments.
-
-    Returns stdout on success, or a JSON error object on failure.
-    """
-    if not CLI_PATH.exists():
-        return json.dumps({
-            "error": f"CLI binary not found at {CLI_PATH}. "
-                     "Run './gradlew installDist' first."
-        })
-
+def _run_cli(*args: str) -> dict:
+    """Run the SDK CLI and return a structured result dict."""
+    if not _CLI.exists():
+        return {
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": f"CLI binary not found at {_CLI}. Run './gradlew installDist' first.",
+            "success": False,
+        }
     try:
         result = subprocess.run(
-            [str(CLI_PATH)] + list(args),
+            [str(_CLI)] + list(args),
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=120,
         )
+        return {
+            "exit_code": result.returncode,
+            "stdout": result.stdout.strip(),
+            "stderr": result.stderr.strip(),
+            "success": result.returncode == 0,
+        }
     except subprocess.TimeoutExpired:
-        return json.dumps({"error": "CLI command timed out after 30 seconds"})
-
-    if result.returncode != 0:
-        return json.dumps({
-            "error": result.stderr.strip() or f"CLI exited with code {result.returncode}"
-        })
-
-    return result.stdout.strip()
-
+        return {
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": "CLI command timed out after 120 seconds.",
+            "success": False,
+        }
 
 # ---------------------------------------------------------------------------
 # MCP server definition
 # ---------------------------------------------------------------------------
 
-app = Server("openehr-cli-mcp")
+server = Server("openehr-cli")
 
 
-@app.list_tools()
+@server.list_tools()
 async def list_tools() -> list[Tool]:
-    """Return the list of tools that the MCP server exposes."""
     return [
         Tool(
-            name="validate_template",
+            name="optval",
             description=(
-                "Validate an openEHR Operational Template (OPT) file. "
-                "Returns a JSON object with 'status' (valid/error/warning) "
-                "and file metadata."
+                "Validate an Operational Template (OPT) file against the openEHR XSD schema. "
+                "Returns whether the file is valid and any validation errors."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "file": {
+                    "source": {
                         "type": "string",
-                        "description": "Absolute or relative path to the .opt template file.",
+                        "description": "Absolute or relative path to the OPT file (.opt)",
                     }
                 },
-                "required": ["file"],
+                "required": ["source"],
             },
         ),
         Tool(
-            name="validate_composition",
+            name="ingen",
             description=(
-                "Validate an openEHR composition (JSON or XML) against an optional "
-                "OPT template. Returns a JSON object with 'status' and file metadata."
+                "Generate sample openEHR instances (COMPOSITION, etc.) from an Operational Template. "
+                "Can generate multiple instances in JSON or XML format."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "composition_file": {
+                    "source": {
                         "type": "string",
-                        "description": "Path to the composition file (JSON or XML).",
+                        "description": "Path to OPT file or folder containing OPT files",
                     },
-                    "template_file": {
+                    "dest": {
                         "type": "string",
-                        "description": "Optional path to the OPT template for validation.",
+                        "description": "Destination folder where generated instances will be written",
                     },
-                },
-                "required": ["composition_file"],
-            },
-        ),
-        Tool(
-            name="generate_sample",
-            description=(
-                "Generate a sample openEHR COMPOSITION JSON from an OPT template. "
-                "Optionally write the result to a file."
-            ),
-            inputSchema={
-                "type": "object",
-                "properties": {
-                    "template_file": {
-                        "type": "string",
-                        "description": "Path to the OPT template file.",
-                    },
-                    "output_file": {
-                        "type": "string",
-                        "description": "Optional output file path. If omitted, result is returned inline.",
+                    "amount": {
+                        "type": "integer",
+                        "description": "Number of instances to generate (default: 1)",
+                        "default": 1,
                     },
                     "format": {
                         "type": "string",
                         "enum": ["json", "xml"],
-                        "description": "Output format — 'json' (default) or 'xml'.",
+                        "description": "Output format: json or xml (default: json)",
+                        "default": "json",
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": ["locatable", "version"],
+                        "description": "Structure type: locatable or version (default: locatable)",
+                        "default": "locatable",
+                    },
+                    "with_participations": {
+                        "type": "boolean",
+                        "description": "Include participations in generated COMPOSITION (default: false)",
+                        "default": False,
+                    },
+                    "flavor": {
+                        "type": "string",
+                        "enum": ["rm", "api"],
+                        "description": "Data structure flavor: rm (Reference Model) or api (default: rm)",
+                        "default": "rm",
                     },
                 },
-                "required": ["template_file"],
+                "required": ["source", "dest"],
             },
         ),
         Tool(
-            name="list_templates",
+            name="inval",
             description=(
-                "List all OPT template files (.opt) found in a directory. "
-                "Returns a JSON object with a 'templates' array and a count."
+                "Validate openEHR XML or JSON instance files against the appropriate schema. "
+                "Supports a single file or an entire folder. "
+                "Optionally performs semantic validation against OPT."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "directory": {
+                    "source": {
                         "type": "string",
-                        "description": "Directory path to search. Defaults to current directory.",
+                        "description": "Path to instance file (.xml or .json) or a folder",
                     },
-                    "recursive": {
+                    "flavor": {
+                        "type": "string",
+                        "enum": ["rm", "api"],
+                        "description": "Data structure flavor: rm or api (default: rm)",
+                        "default": "rm",
+                    },
+                    "semantic": {
                         "type": "boolean",
-                        "description": "If true, search subdirectories recursively.",
+                        "description": "Perform semantic validation against OPT (default: false)",
+                        "default": False,
                     },
                 },
+                "required": ["source"],
+            },
+        ),
+        Tool(
+            name="adl2opt",
+            description=(
+                "Convert an ADL (Archetype Definition Language) archetype file "
+                "into an Operational Template (OPT)."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "description": "Path to the ADL archetype file",
+                    },
+                    "dest": {
+                        "type": "string",
+                        "description": "Destination folder where the generated OPT will be written",
+                    },
+                },
+                "required": ["source", "dest"],
+            },
+        ),
+        Tool(
+            name="trans_opt",
+            description="Transform an Operational Template (OPT) from XML format to JSON format.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "description": "Path to the OPT XML file",
+                    },
+                    "dest": {
+                        "type": "string",
+                        "description": "Destination folder for the JSON output",
+                    },
+                },
+                "required": ["source", "dest"],
+            },
+        ),
+        Tool(
+            name="trans_locatable",
+            description=(
+                "Transform a Locatable openEHR document between XML and JSON formats. "
+                "Input format is detected automatically from the file extension."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "description": "Path to the Locatable file (.xml or .json)",
+                    },
+                    "dest": {
+                        "type": "string",
+                        "description": "Destination folder for the transformed output",
+                    },
+                },
+                "required": ["source", "dest"],
+            },
+        ),
+        Tool(
+            name="uigen",
+            description=(
+                "Generate a Bootstrap HTML UI form from an Operational Template. "
+                "Produces an HTML file with input fields for every data element in the template."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string",
+                        "description": "Path to the OPT file",
+                    },
+                    "dest": {
+                        "type": "string",
+                        "description": "Destination folder for the generated HTML",
+                    },
+                    "bootstrap": {
+                        "type": "string",
+                        "enum": ["bs4", "bs5"],
+                        "description": "Bootstrap version to use: bs4 or bs5 (default: bs5)",
+                        "default": "bs5",
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": ["full", "form"],
+                        "description": "Generation type: full page or form fragment only (default: full)",
+                        "default": "full",
+                    },
+                },
+                "required": ["source", "dest"],
             },
         ),
     ]
 
 
-@app.call_tool()
+@server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-    """Dispatch a tool call to the openEHR-CLI binary."""
+    if name == "optval":
+        result = _run_cli("optval", "-s", arguments["source"])
 
-    if name == "validate_template":
-        output = run_cli("validate-template", arguments["file"])
-
-    elif name == "validate_composition":
-        args = ["validate-composition", arguments["composition_file"]]
-        if "template_file" in arguments:
-            args += ["--template", arguments["template_file"]]
-        output = run_cli(*args)
-
-    elif name == "generate_sample":
-        args = ["generate-sample", arguments["template_file"]]
-        if "output_file" in arguments:
-            args += ["--output", arguments["output_file"]]
+    elif name == "ingen":
+        args = ["ingen", "-s", arguments["source"], "-d", arguments["dest"]]
+        if "amount" in arguments:
+            args += ["-n", str(arguments["amount"])]
         if "format" in arguments:
-            args += ["--format", arguments["format"]]
-        output = run_cli(*args)
+            args += ["-f", arguments["format"]]
+        if "type" in arguments:
+            args += ["-t", arguments["type"]]
+        if arguments.get("with_participations"):
+            args.append("--with-participations")
+        if "flavor" in arguments:
+            args += ["--flavor", arguments["flavor"]]
+        result = _run_cli(*args)
 
-    elif name == "list_templates":
-        args = ["list-templates"]
-        if "directory" in arguments:
-            args.append(arguments["directory"])
-        if arguments.get("recursive"):
-            args.append("--recursive")
-        output = run_cli(*args)
+    elif name == "inval":
+        args = ["inval", "-s", arguments["source"]]
+        if "flavor" in arguments:
+            args += ["--flavor", arguments["flavor"]]
+        if arguments.get("semantic"):
+            args.append("--semantic")
+        result = _run_cli(*args)
+
+    elif name == "adl2opt":
+        result = _run_cli("adl2opt", "-s", arguments["source"], "-d", arguments["dest"])
+
+    elif name == "trans_opt":
+        result = _run_cli("trans", "opt", "-s", arguments["source"], "-d", arguments["dest"])
+
+    elif name == "trans_locatable":
+        result = _run_cli("trans", "locatable", "-s", arguments["source"], "-d", arguments["dest"])
+
+    elif name == "uigen":
+        args = ["uigen", "-s", arguments["source"], "-d", arguments["dest"]]
+        if "bootstrap" in arguments:
+            args += ["--bootstrap", arguments["bootstrap"]]
+        if "type" in arguments:
+            args += ["--type", arguments["type"]]
+        result = _run_cli(*args)
 
     else:
-        output = json.dumps({"error": f"Unknown tool: {name}"})
+        result = {"success": False, "stderr": f"Unknown tool: {name}", "stdout": "", "exit_code": -1}
 
-    return [TextContent(type="text", text=output)]
+    return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
 
 # ---------------------------------------------------------------------------
@@ -197,10 +321,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 async def main() -> None:
     async with stdio_server() as (read_stream, write_stream):
-        await app.run(
+        await server.run(
             read_stream,
             write_stream,
-            app.create_initialization_options(),
+            server.create_initialization_options(),
         )
 
 
