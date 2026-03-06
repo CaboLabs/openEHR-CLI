@@ -28,7 +28,7 @@ from mcp.types import Tool, TextContent
 # ---------------------------------------------------------------------------
 
 _REPO_ROOT = Path(__file__).parent.parent.resolve()
-_CLI = _REPO_ROOT / "app" / "build" / "install" / "app" / "bin" / "app"
+_CLI = _REPO_ROOT / "app" / "build" / "install" / "openehr" / "bin" / "openehr"
 
 # ---------------------------------------------------------------------------
 # Helper
