@@ -209,10 +209,35 @@ pip install -r mcp_server/requirements.txt
 ./gradlew installDist
 ```
 
-**3. Register with Claude Code**
+**3. Register with an MCP-compatible client**
+
+The server follows the open [MCP protocol](https://modelcontextprotocol.io) and works with any compatible client — not just Claude Code. Examples:
+
+| Client | MCP support |
+|--------|-------------|
+| [Claude Code](https://claude.ai/code) | Native — `claude mcp add` |
+| [Claude.ai](https://claude.ai) desktop app | Native — Settings → Integrations (Pro/Team/Enterprise) |
+| [Cursor](https://cursor.com) | Native — `.cursor/mcp.json` |
+| [Cline](https://github.com/cline/cline), [Continue](https://continue.dev), [Windsurf](https://windsurf.com) | Native MCP support |
+| ChatGPT / OpenAI | No native support; community adapters available |
+
+**Claude Code example:**
 
 ```bash
 claude mcp add openehr-cli mcp_server/.venv/bin/python3 /path/to/openEHR-CLI/mcp_server/server.py
+```
+
+**Generic `mcp.json` config** (for Cursor and other JSON-configured clients):
+
+```json
+{
+  "mcpServers": {
+    "openehr-cli": {
+      "command": "/path/to/openEHR-CLI/mcp_server/.venv/bin/python3",
+      "args": ["/path/to/openEHR-CLI/mcp_server/server.py"]
+    }
+  }
+}
 ```
 
 ### Available tools
