@@ -189,6 +189,14 @@ The `mcp_server/` directory contains a [Model Context Protocol](https://modelcon
 
 **1. Install Python dependencies**
 
+On Debian/Ubuntu, first ensure `venv` is available:
+
+```bash
+sudo apt install python3-venv
+```
+
+Then create the virtualenv and install dependencies:
+
 ```bash
 python3 -m venv mcp_server/.venv
 source mcp_server/.venv/bin/activate
