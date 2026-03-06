@@ -190,6 +190,8 @@ The `mcp_server/` directory contains a [Model Context Protocol](https://modelcon
 **1. Install Python dependencies**
 
 ```bash
+python3 -m venv mcp_server/.venv
+source mcp_server/.venv/bin/activate
 pip install -r mcp_server/requirements.txt
 ```
 
@@ -202,7 +204,7 @@ pip install -r mcp_server/requirements.txt
 **3. Register with Claude Code**
 
 ```bash
-claude mcp add openehr-cli python3 /path/to/openEHR-CLI/mcp_server/server.py
+claude mcp add openehr-cli mcp_server/.venv/bin/python3 /path/to/openEHR-CLI/mcp_server/server.py
 ```
 
 ### Available tools
