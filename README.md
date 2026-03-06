@@ -8,12 +8,12 @@ CLI to facilitate working with openEHR artifacts such as Operational Templates (
 ./gradlew installDist
 ```
 
-The executable is placed at `app/build/install/sdk/bin/sdk`.
+The executable is placed at `app/build/install/openehr/bin/openehr`.
 
 ## Usage
 
 ```
-sdk [-hV] <command> [options]
+openehr [-hV] <command> [options]
 ```
 
 Global options:
@@ -32,7 +32,7 @@ Global options:
 Generates an HTML form or full page from an OPT using Bootstrap.
 
 ```
-sdk uigen -s <source> -d <dest> [--bootstrap <version>] [--type <type>]
+openehr uigen -s <source> -d <dest> [--bootstrap <version>] [--type <type>]
 ```
 
 | Option | Required | Default | Values | Description |
@@ -45,7 +45,7 @@ sdk uigen -s <source> -d <dest> [--bootstrap <version>] [--type <type>]
 **Example:**
 
 ```bash
-sdk uigen -s ./templates/blood_pressure.opt -d ./output --bootstrap bs5 --type form
+openehr uigen -s ./templates/blood_pressure.opt -d ./output --bootstrap bs5 --type form
 ```
 
 ---
@@ -55,7 +55,7 @@ sdk uigen -s ./templates/blood_pressure.opt -d ./output --bootstrap bs5 --type f
 Generates synthetic clinical instances (compositions or other locatables) from an OPT.
 
 ```
-sdk ingen -s <source> -d <dest> [-n <amount>] [-f <format>] [-t <type>] [--flavor <flavor>] [--with-participations]
+openehr ingen -s <source> -d <dest> [-n <amount>] [-f <format>] [-t <type>] [--flavor <flavor>] [--with-participations]
 ```
 
 | Option | Required | Default | Values | Description |
@@ -71,7 +71,7 @@ sdk ingen -s <source> -d <dest> [-n <amount>] [-f <format>] [-t <type>] [--flavo
 **Example:**
 
 ```bash
-sdk ingen -s ./templates/ -d ./output -n 5 -f json -t version --flavor api
+openehr ingen -s ./templates/ -d ./output -n 5 -f json -t version --flavor api
 ```
 
 ---
@@ -81,7 +81,7 @@ sdk ingen -s ./templates/ -d ./output -n 5 -f json -t version --flavor api
 Validates an OPT XML file against the openEHR XSD schema.
 
 ```
-sdk optval -s <source>
+openehr optval -s <source>
 ```
 
 | Option | Required | Description |
@@ -91,7 +91,7 @@ sdk optval -s <source>
 **Example:**
 
 ```bash
-sdk optval -s ./templates/blood_pressure.opt
+openehr optval -s ./templates/blood_pressure.opt
 ```
 
 ---
@@ -101,7 +101,7 @@ sdk optval -s ./templates/blood_pressure.opt
 Validates XML or JSON clinical instances against their schemas. Optionally performs semantic validation against the source OPT.
 
 ```
-sdk inval -s <source> [--flavor <flavor>] [--semantic]
+openehr inval -s <source> [--flavor <flavor>] [--semantic]
 ```
 
 | Option | Required | Default | Values | Description |
@@ -113,7 +113,7 @@ sdk inval -s <source> [--flavor <flavor>] [--semantic]
 **Example:**
 
 ```bash
-sdk inval -s ./instances/ --flavor api --semantic
+openehr inval -s ./instances/ --flavor api --semantic
 ```
 
 ---
@@ -125,7 +125,7 @@ Parent command for format transformations. Use one of its subcommands:
 #### `trans opt` – Transform OPT from XML to JSON
 
 ```
-sdk trans opt -s <source> -d <dest>
+openehr trans opt -s <source> -d <dest>
 ```
 
 | Option | Required | Description |
@@ -136,7 +136,7 @@ sdk trans opt -s <source> -d <dest>
 **Example:**
 
 ```bash
-sdk trans opt -s ./templates/blood_pressure.opt -d ./output/json/
+openehr trans opt -s ./templates/blood_pressure.opt -d ./output/json/
 ```
 
 #### `trans locatable` – Transform Locatable between XML and JSON
@@ -144,7 +144,7 @@ sdk trans opt -s ./templates/blood_pressure.opt -d ./output/json/
 Detects the input format from the file extension (`.xml` or `.json`) and converts to the other format.
 
 ```
-sdk trans locatable -s <source> -d <dest>
+openehr trans locatable -s <source> -d <dest>
 ```
 
 | Option | Required | Description |
@@ -155,7 +155,7 @@ sdk trans locatable -s <source> -d <dest>
 **Example:**
 
 ```bash
-sdk trans locatable -s ./instances/composition.xml -d ./output/json/
+openehr trans locatable -s ./instances/composition.xml -d ./output/json/
 ```
 
 ---
@@ -165,7 +165,7 @@ sdk trans locatable -s ./instances/composition.xml -d ./output/json/
 Transforms an ADL archetype file into an Operational Template (OPT).
 
 ```
-sdk adl2opt -s <source> -d <dest>
+openehr adl2opt -s <source> -d <dest>
 ```
 
 | Option | Required | Description |
@@ -176,5 +176,5 @@ sdk adl2opt -s <source> -d <dest>
 **Example:**
 
 ```bash
-sdk adl2opt -s ./archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl -d ./output/
+openehr adl2opt -s ./archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl -d ./output/
 ```

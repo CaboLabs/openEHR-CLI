@@ -39,7 +39,7 @@ dependencies {
 application {
     // Define the main class for the application.
     mainClass = 'com.cabolabs.openehr.opt.MainCli'
-    applicationName = 'sdk'
+    applicationName = 'openehr'
 }
 
 jar {

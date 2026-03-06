@@ -4,7 +4,7 @@ import com.cabolabs.openehr.opt.cli.commands.*
 import picocli.CommandLine
 import picocli.CommandLine.Command
 
-@Command(name = "sdk",
+@Command(name = "openehr",
          version = "1.0",
          description = "openEHR SDK Command Line Tools",
          mixinStandardHelpOptions = true,
