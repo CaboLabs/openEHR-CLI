@@ -19,6 +19,9 @@ class InstanceValidateCommand implements Callable<Integer> {
    @Option(names = ["--semantic"], description = "Perform semantic validation against OPT")
    boolean semantic
 
+   @Option(names = ["-o", "--opt"], description = "Path to OPT folder (required for --semantic)")
+   String optPath
+
    @Override
    Integer call() {
       try {
@@ -33,6 +36,11 @@ class InstanceValidateCommand implements Callable<Integer> {
             return 1
          }
 
+         if (semantic && !optPath) {
+            println "Option --opt is required when using --semantic"
+            return 1
+         }
+
          def xmlInputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream('xsd/Version.xsd')
          def xmlValidator = new XmlValidation(xmlInputStream)
          def jsonValidator = new JsonInstanceValidation(flavor)
@@ -42,7 +50,7 @@ class InstanceValidateCommand implements Callable<Integer> {
          if (file.isDirectory()) {
             file.eachFileMatch(~/.*.xml/) { xml ->
                if (InstanceValidatorService.validateXml(xmlValidator, xml) && semantic) {
-                  InstanceValidatorService.validateWithOpt(xml, 'xml')
+                  InstanceValidatorService.validateWithOpt(xml, 'xml', optPath)
                } else if (!InstanceValidatorService.validateXml(xmlValidator, xml)) {
                   allValid = false
                }
@@ -50,7 +58,7 @@ class InstanceValidateCommand implements Callable<Integer> {
 
             file.eachFileMatch(~/.*.json/) { json ->
                if (InstanceValidatorService.validateJson(jsonValidator, json) && semantic) {
-                  InstanceValidatorService.validateWithOpt(json, 'json')
+                  InstanceValidatorService.validateWithOpt(json, 'json', optPath)
                } else if (!InstanceValidatorService.validateJson(jsonValidator, json)) {
                   allValid = false
                }
@@ -60,12 +68,12 @@ class InstanceValidateCommand implements Callable<Integer> {
             if (ext == 'json') {
                allValid = InstanceValidatorService.validateJson(jsonValidator, file)
                if (allValid && semantic) {
-                  InstanceValidatorService.validateWithOpt(file, 'json')
+                  InstanceValidatorService.validateWithOpt(file, 'json', optPath)
                }
             } else if (ext == 'xml') {
                allValid = InstanceValidatorService.validateXml(xmlValidator, file)
                if (allValid && semantic) {
-                  InstanceValidatorService.validateWithOpt(file, 'xml')
+                  InstanceValidatorService.validateWithOpt(file, 'xml', optPath)
                }
             } else {
                println "File extension $ext is not supported, only json and xml are supported"
