@@ -13,7 +13,7 @@ dependencies {
     implementation 'org.codehaus.groovy:groovy-all:3.0.11'
 
     // openEHR SDK dependency
-    implementation 'com.github.CaboLabs:openEHR-SDK:2.2.23'
+    implementation 'com.github.CaboLabs:openEHR-SDK:2.2.30'
 
     // picocli for CLI
     implementation 'info.picocli:picocli:4.7.5'
@@ -31,6 +31,9 @@ dependencies {
 
     // to transform ADL to OPT
     implementation 'com.github.ppazos:java-libs:v1.0.20'
+
+    // openEHR REST client
+    implementation 'com.github.ppazos:openehr-rest-client:0.4.4'
 
     // Use the awesome Spock testing and specification framework
     testImplementation 'org.spockframework:spock-core:2.3-groovy-3.0'
