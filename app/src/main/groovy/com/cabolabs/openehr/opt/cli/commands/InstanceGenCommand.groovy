@@ -69,6 +69,7 @@ class InstanceGenCommand implements Callable<Integer> {
          return 0
 
       } catch (Exception e) {
+         e.printStackTrace()
          println "Error: ${e.message}"
          return 1
       }
