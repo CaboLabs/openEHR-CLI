@@ -1,0 +1,295 @@
+{
+    "_type": "COMPOSITION",
+    "name": {
+        "_type": "DV_TEXT",
+        "value": "Encounter"
+    },
+    "archetype_details": {
+        "archetype_id": {
+            "value": "openEHR-EHR-COMPOSITION.encounter.v1"
+        },
+        "template_id": {
+            "value": "oximetria.en.v1"
+        },
+        "rm_version": "1.0.2"
+    },
+    "archetype_node_id": "openEHR-EHR-COMPOSITION.encounter.v1",
+    "language": {
+        "terminology_id": {
+            "value": "ISO_639-1"
+        },
+        "code_string": "en"
+    },
+    "territory": {
+        "terminology_id": {
+            "value": "ISO_3166-1"
+        },
+        "code_string": "UY"
+    },
+    "category": {
+        "value": "event",
+        "defining_code": {
+            "terminology_id": {
+                "value": "openehr"
+            },
+            "code_string": "433"
+        }
+    },
+    "composer": {
+        "_type": "PARTY_IDENTIFIED",
+        "external_ref": {
+            "id": {
+                "_type": "HIER_OBJECT_ID",
+                "value": "889ec2a3-bc5b-4943-b608-6f046074f38d"
+            },
+            "namespace": "DEMOGRAPHIC",
+            "type": "PERSON"
+        },
+        "name": "Dr. Yamamoto"
+    },
+    "context": {
+        "start_time": {
+            "value": "2021-05-02T03:17:11.582-03:00"
+        },
+        "setting": {
+            "value": "emergency care",
+            "defining_code": {
+                "terminology_id": {
+                    "value": "openehr"
+                },
+                "code_string": "227"
+            }
+        },
+        "participations": [
+            {
+                "function": {
+                    "value": "companion"
+                },
+                "performer": {
+                    "_type": "PARTY_RELATED",
+                    "name": "Betty Bix",
+                    "relationship": {
+                        "value": "sister",
+                        "defining_code": {
+                            "terminology_id": {
+                                "value": "openehr"
+                            },
+                            "code_string": "24"
+                        }
+                    }
+                },
+                "mode": {
+                    "value": "not specified",
+                    "defining_code": {
+                        "terminology_id": {
+                            "value": "openehr"
+                        },
+                        "code_string": "193"
+                    }
+                }
+            }
+        ]
+    },
+    "content": [
+        {
+            "_type": "OBSERVATION",
+            "name": {
+                "_type": "DV_TEXT",
+                "value": "Pulse oximetry"
+            },
+            "archetype_node_id": "openEHR-EHR-OBSERVATION.pulse_oximetry.v1",
+            "language": {
+                "terminology_id": {
+                    "value": "ISO_639-1"
+                },
+                "code_string": "en"
+            },
+            "encoding": {
+                "terminology_id": {
+                    "value": "Unicode"
+                },
+                "code_string": "UTF-8"
+            },
+            "subject": {
+                "_type": "PARTY_SELF"
+            },
+            "protocol": {
+                "_type": "ITEM_TREE",
+                "name": {
+                    "_type": "DV_TEXT",
+                    "value": "List"
+                },
+                "archetype_node_id": "at0007",
+                "items": [
+                    {
+                        "_type": "ELEMENT",
+                        "name": {
+                            "_type": "DV_TEXT",
+                            "value": "Sensor site"
+                        },
+                        "archetype_node_id": "at0009",
+                        "value": {
+                            "_type": "DV_TEXT",
+                            "value": "WqBqbRKCiYyCfYJLdZEVULLuWaEqbsoHVTZfNLAvCzdd,rwEZsUtWpQsNMOmIgVkxDhYjdbDGFRKoXjOeFJLcYBiqZtlNhENW.kKETcSCBoxbjmHdcJthUHXlh.Nv,cQnwqUYubKjFMECZZd,bFhwC mrHJIlBDLdppSThDUTeOInLAPsruNySgwoqTCbld.eQUSRihvgUVDP,ozFH,LRjnUDGzQPssdgwWxFiu,SP.WrdBGOYvVtnUyp MAWKb"
+                        }
+                    },
+                    {
+                        "_type": "ELEMENT",
+                        "name": {
+                            "_type": "DV_TEXT",
+                            "value": "Pre/post-ductal"
+                        },
+                        "archetype_node_id": "at0061",
+                        "value": {
+                            "_type": "DV_CODED_TEXT",
+                            "value": "Pre-ductal",
+                            "defining_code": {
+                                "terminology_id": {
+                                    "value": "local"
+                                },
+                                "code_string": "at0062"
+                            }
+                        }
+                    }
+                ]
+            },
+            "data": {
+                "_type": "HISTORY",
+                "name": {
+                    "_type": "DV_TEXT",
+                    "value": "Event Series"
+                },
+                "archetype_node_id": "at0001",
+                "origin": {
+                    "_type": "DV_DATE_TIME",
+                    "value": "2021-05-02T03:17:11.650-03:00"
+                },
+                "events": [
+                    {
+                        "_type": "POINT_EVENT",
+                        "name": {
+                            "_type": "DV_TEXT",
+                            "value": "Any event"
+                        },
+                        "archetype_node_id": "at0002",
+                        "time": {
+                            "_type": "DV_DATE_TIME",
+                            "value": "2021-05-02T03:17:11.657-03:00"
+                        },
+                        "data": {
+                            "_type": "ITEM_TREE",
+                            "name": {
+                                "_type": "DV_TEXT",
+                                "value": "Tree"
+                            },
+                            "archetype_node_id": "at0003",
+                            "items": [
+                                {
+                                    "_type": "ELEMENT",
+                                    "name": {
+                                        "_type": "DV_TEXT",
+                                        "value": "SpO\u2082"
+                                    },
+                                    "archetype_node_id": "at0006",
+                                    "value": {
+                                        "_type": "DV_PROPORTION",
+                                        "numerator": 71.4,
+                                        "denominator": 100,
+                                        "type": 2
+                                    }
+                                },
+                                {
+                                    "_type": "ELEMENT",
+                                    "name": {
+                                        "_type": "DV_TEXT",
+                                        "value": "SpOC"
+                                    },
+                                    "archetype_node_id": "at0044",
+                                    "value": {
+                                        "_type": "DV_QUANTITY",
+                                        "magnitude": 88.1,
+                                        "units": "ml/dl"
+                                    }
+                                },
+                                {
+                                    "_type": "ELEMENT",
+                                    "name": {
+                                        "_type": "DV_TEXT",
+                                        "value": "SpCO"
+                                    },
+                                    "archetype_node_id": "at0045",
+                                    "value": {
+                                        "_type": "DV_PROPORTION",
+                                        "numerator": 31.4,
+                                        "denominator": 100,
+                                        "type": 2
+                                    }
+                                },
+                                {
+                                    "_type": "ELEMENT",
+                                    "name": {
+                                        "_type": "DV_TEXT",
+                                        "value": "SpMet"
+                                    },
+                                    "archetype_node_id": "at0046",
+                                    "value": {
+                                        "_type": "DV_PROPORTION",
+                                        "numerator": 6.4,
+                                        "denominator": 100,
+                                        "type": 2
+                                    }
+                                },
+                                {
+                                    "_type": "ELEMENT",
+                                    "name": {
+                                        "_type": "DV_TEXT",
+                                        "value": "Interpretation"
+                                    },
+                                    "archetype_node_id": "at0058",
+                                    "value": {
+                                        "_type": "DV_TEXT",
+                                        "value": "ZWqBujvgSzfgilKHdc.hlVR.ZSYIvzhePDWBJmmQWMsIknLslHqKHgwc OjBaflTlxlnBAcXmSYiDFG.LJJUqHl JfbSHinXuzcXTaz.EbQExzSwgyeLhHe.tJkyneJTTdTuhR jSClTHiMvjkwxHjFY ycC.aWFsCQPjJsUce bSbhwuQJmdTSMNlJHQuo  nQAgXeUyouAhLmMKymESNxWY DilTqjxHjhdDBfdIFIrIUQfO.Al eJmAWeNbv"
+                                    }
+                                },
+                                {
+                                    "_type": "ELEMENT",
+                                    "name": {
+                                        "_type": "DV_TEXT",
+                                        "value": "Comment"
+                                    },
+                                    "archetype_node_id": "at0036",
+                                    "value": {
+                                        "_type": "DV_TEXT",
+                                        "value": "gKIVXmVNg nkC UWqlIBRzYtpMKsDsc ZbiHkVSUCnOdGLXTJx PXYvIaDkyuYNquqpMaOBmacDDVLGPL DhXOFMCKZLQZYrxOGoyB.XhFBpZpzknsZIJOcLhmJCci,yWBL TGGwJIyftUiTPR.gRffdjZi.SeHHBbrVeGmrFaoAiHkyMnMQvPaLcVZmnpti nwoxERvbPk.UCKZUaaL ftxiRHBwUWLqgpsNGfJbhlvLgaThgATycmVkEALVlI"
+                                    }
+                                }
+                            ]
+                        },
+                        "state": {
+                            "_type": "ITEM_TREE",
+                            "name": {
+                                "_type": "DV_TEXT",
+                                "value": "Tree"
+                            },
+                            "archetype_node_id": "at0014",
+                            "items": [
+                                {
+                                    "_type": "ELEMENT",
+                                    "name": {
+                                        "_type": "DV_TEXT",
+                                        "value": "Confounding factors"
+                                    },
+                                    "archetype_node_id": "at0016",
+                                    "value": {
+                                        "_type": "DV_TEXT",
+                                        "value": "JFMMAnlW ZhFjSmDVHBqRphsc.rtiEdTGfNCNtyAABqakPwwAKHQyHEf NZGCjcj RENWOnMB,zUZWXh,LFDpEekmENehDCESjhAISabgCVNULIXpQG,OkXseJMKPTFxX. RkzwnHVGU,jTEgsbQspAwMbcmbwWIx, dmEfsytuPMCGdTuOA.w,TJAcrLWuytnIfsrkbcJYPjkooBFniVQoYNDBDKKclzvNFaDAr,K.MymKmLzAbLWlDvWXSyLX"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

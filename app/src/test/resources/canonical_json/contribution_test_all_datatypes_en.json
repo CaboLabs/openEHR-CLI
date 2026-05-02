@@ -1,0 +1,45 @@
+{
+    "uid": {
+        "_type": "HIER_OBJECT_ID",
+        "value": "629464f0-e626-aaaa-cccc-71dace8a2f24"
+    },
+    "versions": [
+        {
+            "_type": "OBJECT_REF",
+            "id": {
+                "_type": "OBJECT_VERSION_ID",
+                "value": "fb458d9c-1323-42bc-b7f8-787f3660a0b5::CABOLABS::1"
+            },
+            "namespace": "local",
+            "type": "COMPOSITION"
+        }
+    ],
+    "audit":{
+        "_type": "AUDIT_DETAILS",
+        "system_id": "CABOLABS_EHR",
+        "time_committed": {
+            "value": "2020-08-23T07:04:58.689Z"
+        },
+        "change_type": {
+            "value": "creation",
+            "defining_code": {
+                "terminology_id": {
+                    "value": "openehr"
+                },
+                "code_string": "249"
+            }
+        },
+        "committer":{
+            "_type": "PARTY_IDENTIFIED",
+            "name": "Pablo Pazos",
+            "external_ref": {
+                "id": {
+                    "_type": "HIER_OBJECT_ID",
+                    "value": "c679cb62-97a3-4bf4-8239-f4553fe99acb"
+                },
+                "namespace": "demographic",
+                "type": "PERSON"
+            }
+        }
+    }
+}
