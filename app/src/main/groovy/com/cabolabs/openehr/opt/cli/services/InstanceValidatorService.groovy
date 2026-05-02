@@ -42,20 +42,22 @@ class InstanceValidatorService {
       return true
    }
 
-   static void validateWithOpt(File file, String ext) {
+   static void validateWithOpt(File file, String ext, String optPath) {
       def parser = (ext == 'json') ? new OpenEhrJsonParser() : new OpenEhrXmlParser()
       def instance = (ext == 'json') ? parser.parseJson(file.text) : parser.parseLocatable(file.text)
-      validateLocatableWithOpt(instance)
+      validateLocatableWithOpt(instance, optPath)
    }
 
-   static void validateLocatableWithOpt(Locatable locatable) {
-      String optRepoPath = "src" + PS + "main" + PS + "resources" + PS + "opts"
-      def repo = new OptRepositoryFSImpl(optRepoPath)
+   static void validateLocatableWithOpt(Locatable locatable, String optPath) {
+      // optPath can be a single OPT file or a directory containing OPTs
+      def optFile = new File(optPath)
+      def repoLocation = optFile.isFile() ? optFile.parent : optPath
+      def repo = new OptRepositoryFSImpl(repoLocation)
       def optManager = OptManager.getInstance()
       optManager.init(repo)
 
       def validator = new RmValidator2(optManager)
-      def report = validator.dovalidate(locatable, OptManager.DEFAULT_NAMESPACE)
+      def report = validator.dovalidate(locatable, "")
 
       if (report.hasErrors()) {
          println "Semantic NOT VALID:"
