@@ -181,6 +181,39 @@ openehr adl2opt -s ./archetypes/openEHR-EHR-OBSERVATION.blood_pressure.v2.adl -d
 
 ---
 
+### `diff` – Diff two Operational Templates
+
+Compares two OPTs and reports what changed between them, as a tree.
+
+```
+openehr diff --old <old> --new <new> [--mode <mode>] [--format <format>] [--full] [--no-color]
+```
+
+| Option | Required | Default | Values | Description |
+|--------|----------|---------|--------|-------------|
+| `--old` | yes | — | file path | Path to the old/baseline OPT file |
+| `--new` | yes | — | file path | Path to the new OPT file |
+| `--mode` | no | `semantic` | `semantic`, `structural` | `semantic` reports field-level constraint changes (name, occurrences, code lists, ranges, etc.); `structural` only reports whether a node's path was added/removed/kept |
+| `--format` | no | `tree` | `tree`, `json` | Output format |
+| `--full` | no | false | flag | Include unchanged (`same`) nodes in the tree instead of collapsing them |
+| `--no-color` | no | false | flag | Disable ANSI colors in tree output |
+
+Output is a tree prefixed with `+`/`-`/`~`/` ` (added/removed/modified/same), collapsed to only the
+changed paths by default, ending with a summary line. For large diffs, pipe the tree output to
+`less`:
+
+```bash
+openehr diff --old ./templates/blood_pressure_v1.opt --new ./templates/blood_pressure_v2.opt | less
+```
+
+**Example:**
+
+```bash
+openehr diff --old ./templates/blood_pressure_v1.opt --new ./templates/blood_pressure_v2.opt --mode semantic
+```
+
+---
+
 ## MCP Server
 
 The `mcp_server/` directory contains a [Model Context Protocol](https://modelcontextprotocol.io) server that exposes all CLI commands as tools, allowing LLMs like Claude to work with openEHR artifacts directly in conversation.

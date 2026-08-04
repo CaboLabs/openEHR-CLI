@@ -10,7 +10,7 @@ class MainCliTest extends Specification {
       int exitCode = new CommandLine(new MainCli()).execute()
 
       then:
-      exitCode == 0
+      exitCode == CommandLine.ExitCode.USAGE
    }
 
    def "CLI shows help without error"() {

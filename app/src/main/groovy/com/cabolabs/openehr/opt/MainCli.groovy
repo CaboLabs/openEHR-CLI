@@ -14,7 +14,8 @@ import picocli.CommandLine.Command
             OptValidateCommand,
             InstanceValidateCommand,
             TransformCommand,
-            Adl2OptCommand
+            Adl2OptCommand,
+            DiffCommand
          ])
 class MainCli {
    static void main(String[] args) {
