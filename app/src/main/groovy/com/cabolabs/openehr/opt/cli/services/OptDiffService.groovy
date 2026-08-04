@@ -7,6 +7,19 @@ import com.cabolabs.openehr.opt.diff.FieldChange
 import com.cabolabs.openehr.opt.diff.ListChange
 import com.cabolabs.openehr.opt.diff.OperationalTemplateDiff
 import com.cabolabs.openehr.opt.diff.NodeDiff
+import com.cabolabs.openehr.opt.model.PrimitiveObjectNode
+import com.cabolabs.openehr.opt.model.ArchetypeSlot
+import com.cabolabs.openehr.opt.model.domain.CCodePhrase
+import com.cabolabs.openehr.opt.model.domain.CDvQuantity
+import com.cabolabs.openehr.opt.model.domain.CDvOrdinal
+import com.cabolabs.openehr.opt.model.primitive.CInteger
+import com.cabolabs.openehr.opt.model.primitive.CReal
+import com.cabolabs.openehr.opt.model.primitive.CBoolean
+import com.cabolabs.openehr.opt.model.primitive.CString
+import com.cabolabs.openehr.opt.model.primitive.CDate
+import com.cabolabs.openehr.opt.model.primitive.CDateTime
+import com.cabolabs.openehr.opt.model.primitive.CTime
+import com.cabolabs.openehr.opt.model.primitive.CDuration
 
 // Renders SemanticOperationalTemplateDiff / OperationalTemplateDiff trees (from openEHR-SDK's
 // com.cabolabs.openehr.opt.diff) as either an indented terminal tree or a plain (non-circular)
@@ -52,6 +65,15 @@ class OptDiffService {
 
          node.fieldChanges.each {
             sb << indent << "    ${it.field}: ${fmt(it.oldValue)} -> ${fmt(it.newValue)}\n"
+         }
+
+         // whole-subtree added/removed nodes never run field comparison (nothing to diff
+         // against), so fieldChanges/listChanges are always empty here - read the constraint
+         // straight off the one-sided raw node instead, otherwise an added/removed node with
+         // its own constraint (e.g. a new CInteger.list or CReal.range) shows no values at all.
+         if (node.status == 'added' || node.status == 'removed') {
+            def desc = describeConstraint(node.status == 'added' ? node.node2 : node.node1)
+            if (desc) sb << indent << "    ${desc}\n"
          }
 
          node.listChanges.each { lc ->
@@ -210,5 +232,80 @@ class OptDiffService {
       if (item.hasProperty('units') && item.units != null) return item.units.toString()
       if (item.hasProperty('value')) return item.value?.toString()
       return item.toString()
+   }
+
+   // describes the own constraint carried by a whole-subtree added/removed ObjectNode - mirrors
+   // SemanticOperationalTemplateDiffAlgorithm's type-specific comparators, but one-sided (no
+   // diffing, just reading what's there) since an added/removed node has nothing on the other
+   // side to compare against.
+   private static String describeConstraint(def n) {
+      if (n == null) return null
+
+      if (n instanceof CCodePhrase) {
+         def parts = []
+         if (n.terminologyId) parts << "terminologyId: ${n.terminologyId}"
+         if (n.codeList) parts << "codeList: [${n.codeList.collect { itemLabel(it, n, 'codeList') }.join(', ')}]"
+         return parts ? parts.join(', ') : null
+      }
+      if (n instanceof CDvQuantity) {
+         return n.list ? "list: [${n.list.collect { it.units }.join(', ')}]" : null
+      }
+      if (n instanceof CDvOrdinal) {
+         return n.list ? "list: [${n.list.collect { it.value }.join(', ')}]" : null
+      }
+      if (n instanceof ArchetypeSlot) {
+         def parts = []
+         if (n.includes) parts << "includes: ${n.includes}"
+         if (n.excludes) parts << "excludes: ${n.excludes}"
+         return parts ? parts.join(', ') : null
+      }
+      if (n instanceof PrimitiveObjectNode) {
+         return describePrimitiveItem(n.item)
+      }
+      return null
+   }
+
+   private static String describePrimitiveItem(def item) {
+      if (item == null) return null
+
+      def parts = []
+      if (item instanceof CInteger) {
+         if (item.range) parts << "range: ${intervalStr(item.range)}"
+         if (item.list)  parts << "list: ${item.list}"
+      }
+      else if (item instanceof CReal) {
+         if (item.range) parts << "range: ${intervalStr(item.range)}"
+      }
+      else if (item instanceof CBoolean) {
+         if (item.trueValid != null)  parts << "trueValid: ${item.trueValid}"
+         if (item.falseValid != null) parts << "falseValid: ${item.falseValid}"
+      }
+      else if (item instanceof CString) {
+         if (item.pattern) parts << "pattern: ${item.pattern}"
+         if (item.list)    parts << "list: ${item.list}"
+      }
+      else if (item instanceof CDuration) {
+         if (item.pattern) parts << "pattern: ${item.pattern}"
+         if (item.range)   parts << "range: ${intervalStr(item.range)}"
+      }
+      else if (item instanceof CDate || item instanceof CDateTime || item instanceof CTime) {
+         if (item.pattern) parts << "pattern: ${item.pattern}"
+      }
+
+      return parts ? parts.join(', ') : null
+   }
+
+   // works for IntervalInt, IntervalBigDecimal and IntervalDuration alike (duck typing on the
+   // shared lowerIncluded/upperIncluded/lowerUnbounded/upperUnbounded/lower/upper fields) - same
+   // approach as the SDK algorithm's own intervalStr, kept local since that one's private.
+   private static String intervalStr(def interval) {
+      if (interval == null) return null
+
+      def lo = interval.lowerUnbounded ? '*' : interval.lower
+      def hi = interval.upperUnbounded ? '*' : interval.upper
+      def lb = interval.lowerIncluded ? '[' : '('
+      def ub = interval.upperIncluded ? ']' : ')'
+
+      return "${lb}${lo}..${hi}${ub}"
    }
 }
