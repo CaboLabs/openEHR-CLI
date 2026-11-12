@@ -13,7 +13,7 @@ dependencies {
     implementation 'org.codehaus.groovy:groovy-all:3.0.11'
 
     // openEHR SDK dependency
-    implementation 'com.github.CaboLabs:openEHR-SDK:2.7.2'
+    implementation 'com.github.CaboLabs:openEHR-SDK:2.7.3'
 
     // picocli for CLI
     implementation 'info.picocli:picocli:4.7.5'
