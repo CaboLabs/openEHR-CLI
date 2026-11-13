@@ -193,7 +193,7 @@ openehr diff --old <old> --new <new> [--mode <mode>] [--format <format>] [--full
 |--------|----------|---------|--------|-------------|
 | `--old` | yes | — | file path | Path to the old/baseline OPT file |
 | `--new` | yes | — | file path | Path to the new OPT file |
-| `--mode` | no | `semantic` | `semantic`, `structural` | `semantic` reports field-level constraint changes (name, occurrences, code lists, ranges, etc.); `structural` only reports whether a node's path was added/removed/kept |
+| `--mode` | no | `semantic` | `semantic`, `structural` | `semantic` reports field-level constraint changes (text, occurrences, code lists, ranges, etc.) and flags the breaking ones; `structural` only reports whether a node's path was added/removed/kept |
 | `--format` | no | `tree` | `tree`, `json` | Output format |
 | `--full` | no | false | flag | Include unchanged (`same`) nodes in the tree instead of collapsing them |
 | `--no-color` | no | false | flag | Disable ANSI colors in tree output |
@@ -211,6 +211,44 @@ openehr diff --old ./templates/blood_pressure_v1.opt --new ./templates/blood_pre
 ```bash
 openehr diff --old ./templates/blood_pressure_v1.opt --new ./templates/blood_pressure_v2.opt --mode semantic
 ```
+
+#### Reading the semantic diff report
+
+```
+~ /content[...]/data[at0001]/items[at0004] 'count node 1' [modified]
+    ~ .../items[at0004]/value/magnitude [modified]
+        range: (*..*) -> [0..*)  [POTENTIAL BREAKING]
+- .../items[at0006] 'ordinal node 1' [removed]  [CONFIRMED BREAKING]
+
+2 confirmed breaking, 6 potential breaking (potential ones need a check against existing data)
+```
+
+**Status prefix:** `+` added, `-` removed, `~` modified, blank = same (only shown with `--full`). The quoted text after the path is the text of the OPT node, resolved from its `node_id`. Nodes without a `node_id` get a synthetic text, the dotted attribute path (e.g. `count node 1.value`).
+
+**Breaking tags.** The tags answer: *could data that was valid against the old OPT be invalid against the new one?*
+
+| Tag | Meaning | What to do |
+|-----|---------|------------|
+| `[CONFIRMED BREAKING]` | The change alone invalidates data that was valid under the old OPT, no need to look at the data. E.g. an optional node made required, a new required node, a mandatory node removed, a range or a list the old OPT had that got tighter, a code or unit removed. | Migrate or fix the data before moving to the new OPT. |
+| `[POTENTIAL BREAKING]` | Breaks only the data that has certain values, or the queries that use the path. E.g. a constraint over something the old OPT didn't constrain, an optional node removed. | Check the existing data (it can be automated); if no data has those values, nothing breaks. |
+| no tag | Not breaking: e.g. an optional new node, a code added to a list, a constraint relaxed, text changes. | |
+
+**What "not constrained" means.** An OPT only states what it constrains, the rest is ruled by the openEHR RM, so the old value of a constraint that the old OPT didn't have is the most open expression the RM allows, never empty:
+
+- `(*..*)` for an interval, e.g. `DV_COUNT.magnitude` allows negatives in the RM, so `[0..*)` is a narrowing, not a new constraint.
+- `any` for a pattern or a list of strings.
+- The RM enumeration for enumerated attributes, e.g. `DV_PROPORTION.type: [0, 1, 2, 3, 4] -> [2]`.
+- `-` only when there is no value to show, e.g. a text that was empty.
+
+Because the RM already defines those attributes, a constraint on them is `modified` (from the RM default to the new constraint), not `added`.
+
+**Added and removed nodes.** Only the added/removed node itself is evaluated, not what is below it: an optional new node with a required `value` is not breaking (no legacy data has the node), and a removed node is reported once, at the node.
+
+**Summary lines.** The first line counts nodes (`added`, `removed`, `modified`, `same`), the last one counts breaking changes. Breaking changes that have no line to carry the tag (e.g. a removed attribute) are listed under `Other breaking changes`.
+
+With `--format json`, the output includes a top-level `breakingChanges` list with `templatePath`, `category`, `field`, `oldValue`, `newValue`, `reason`, `certain` and `level` (`confirmed` or `potential`). Node diffs use `text` for the node text (it was `name` before openEHR-SDK 2.7.5).
+
+The full rules (categories, RM baselines, how added/removed subtrees are treated) are documented in the openEHR-SDK README, section *Breaking-change detection*.
 
 ---
 
