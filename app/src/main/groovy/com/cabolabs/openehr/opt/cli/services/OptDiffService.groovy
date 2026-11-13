@@ -49,22 +49,34 @@ class OptDiffService {
       }
 
       sb << "\n"
-      renderSemanticNode(diff.root, 0, full, color, sb, summary)
+      def ctx = [bcs: diff.breakingChanges, used: new HashSet()]
+      renderSemanticNode(diff.root, 0, full, color, sb, summary, ctx)
       sb << "\n${summary.added} added, ${summary.removed} removed, ${summary.modified} modified, ${summary.same} same\n"
+
+      // breaking changes with no field line to carry the tag (e.g. a removed attribute)
+      def loose = diff.breakingChanges.findAll { !ctx.used.contains(it) }
+      if (loose) {
+         sb << "\nOther breaking changes:\n"
+         loose.each { sb << "  ${it.templatePath} ${it.field ?: ''} [${breakingLabel(it)}] ${it.reason}\n" }
+      }
+
+      def confirmed = diff.breakingChanges.count { it.certain }
+      def potential = diff.breakingChanges.size() - confirmed
+      sb << "${confirmed} confirmed breaking, ${potential} potential breaking (potential ones need a check against existing data)\n"
 
       return sb.toString()
    }
 
-   private static void renderSemanticNode(SemanticNodeDiff node, int depth, boolean full, boolean color, StringBuilder sb, Map summary) {
+   private static void renderSemanticNode(SemanticNodeDiff node, int depth, boolean full, boolean color, StringBuilder sb, Map summary, Map ctx) {
       summary[node.status] = (summary[node.status] ?: 0) + 1
 
       def indent = '  ' * depth
 
       if (full || node.status != 'same') {
-         sb << indent << line(node.status, "${node.templatePath}${nameLabel(node.name)} [${node.status}]", color) << "\n"
+         sb << indent << line(node.status, "${node.templatePath}${nameLabel(node.text)} [${node.status}]", color) << nodeTag(node, ctx) << "\n"
 
          node.fieldChanges.each {
-            sb << indent << "    ${it.field}: ${fmt(it.oldValue)} -> ${fmt(it.newValue)}\n"
+            sb << indent << "    ${it.field}: ${fmt(it.oldValue)} -> ${fmt(it.newValue)}${tag(node.templatePath, it, ctx)}\n"
          }
 
          // whole-subtree added/removed nodes never run field comparison (nothing to diff
@@ -80,9 +92,9 @@ class OptDiffService {
             def addedLabels = lc.added.collect { itemLabel(it, node.node2, lc.field) }.join(', ')
             def removedLabels = lc.removed.collect { itemLabel(it, node.node1, lc.field) }.join(', ')
             def modifiedLabels = lc.modified.collect { itemLabel(it.item, node.node2, lc.field) }.join(', ')
-            sb << indent << "    ${lc.field}: +${lc.added.size()}[${addedLabels}] -${lc.removed.size()}[${removedLabels}] ~[${modifiedLabels}]\n"
+            sb << indent << "    ${lc.field}: +${lc.added.size()}[${addedLabels}] -${lc.removed.size()}[${removedLabels}] ~[${modifiedLabels}]${tag(node.templatePath, new FieldChange(field: lc.field), ctx)}\n"
             lc.modified.each { mi ->
-               def changesStr = mi.changes.collect { "${it.field}: ${fmt(it.oldValue)} -> ${fmt(it.newValue)}" }.join(', ')
+               def changesStr = mi.changes.collect { "${it.field}: ${fmt(it.oldValue)} -> ${fmt(it.newValue)}${tag(node.templatePath + '[units=' + mi.item + ']', it, ctx)}" }.join(', ')
                sb << indent << "      ~ ${itemLabel(mi.item, node.node2, lc.field)}: ${changesStr}\n"
             }
          }
@@ -92,17 +104,22 @@ class OptDiffService {
          if ((full || attrDiff.status != 'same') && attrDiff.fieldChanges) {
             sb << indent << "  " << line(attrDiff.status, "@${name} [${attrDiff.status}]", color) << "\n"
             attrDiff.fieldChanges.each {
-               sb << indent << "    ${it.field}: ${fmt(it.oldValue)} -> ${fmt(it.newValue)}\n"
+               sb << indent << "    ${it.field}: ${fmt(it.oldValue)} -> ${fmt(it.newValue)}${tag(node.templatePath, it, ctx)}\n"
             }
          }
 
-         attrDiff.children.each { child -> renderSemanticNode(child, depth + 1, full, color, sb, summary) }
+         attrDiff.children.each { child -> renderSemanticNode(child, depth + 1, full, color, sb, summary, ctx) }
       }
    }
 
    static Map semanticDiffToMap(SemanticOperationalTemplateDiff diff) {
       [
          templateMetadataChanges: diff.templateMetadataChanges.collect { fieldChangeToMap(it) },
+         breakingChanges: diff.breakingChanges.collect { [
+            templatePath: it.templatePath, category: it.category, field: it.field,
+            oldValue: it.oldValue, newValue: it.newValue, reason: it.reason,
+            certain: it.certain, level: it.certain ? 'confirmed' : 'potential'
+         ] },
          root: semanticNodeToMap(diff.root)
       ]
    }
@@ -110,7 +127,7 @@ class OptDiffService {
    private static Map semanticNodeToMap(SemanticNodeDiff n) {
       [
          templatePath: n.templatePath, nodeId: n.nodeId, rmTypeName: n.rmTypeName,
-         type: n.type, name: n.name, status: n.status,
+         type: n.type, text: n.text, status: n.status,
          fieldChanges: n.fieldChanges.collect { fieldChangeToMap(it) },
          listChanges: n.listChanges.collect { listChangeToMap(it) },
          attributes: n.attributes.collectEntries { name, a -> [name, attributeDiffToMap(a)] }
@@ -204,8 +221,33 @@ class OptDiffService {
       color ? "${COLOR[status]}${prefix} ${text}${RESET}" : "${prefix} ${text}"
    }
 
+   // no value means no constraint, shown as a hyphen instead of a technical null
    private static String fmt(def v) {
-      v == null ? 'null' : v.toString()
+      v == null ? '-' : v.toString()
+   }
+
+   private static String breakingLabel(def bc) {
+      bc.certain ? 'CONFIRMED BREAKING' : 'POTENTIAL BREAKING'
+   }
+
+   // finds the breaking change for a field change of the node/item at path, marks it as shown
+   private static String tag(String path, FieldChange c, Map ctx) {
+      def bc = findBreaking(path, c, ctx)
+      return bc ? "  [${breakingLabel(bc)}]" : ''
+   }
+
+   private static def findBreaking(String path, FieldChange c, Map ctx) {
+      def bc = ctx.bcs.find { it.templatePath == path && it.field == c.field &&
+                              (c.newValue == null || it.newValue?.toString() == c.newValue.toString() || it.category == 'value_removed') }
+      if (bc) ctx.used << bc
+      return bc
+   }
+
+   // node-level breaking changes: a new mandatory node, a removed node
+   private static String nodeTag(SemanticNodeDiff node, Map ctx) {
+      def bcs = ctx.bcs.findAll { it.templatePath == node.templatePath && it.category in ['node_added_mandatory', 'node_removed'] }
+      bcs.each { ctx.used << it }
+      return bcs ? bcs.collect { "  [${breakingLabel(it)}]" }.join('') : ''
    }
 
    // node/archetype display name, as it appears in the OPT (e.g. ELEMENT.name/text, or an
@@ -221,7 +263,7 @@ class OptDiffService {
    // item, node2 for an added/modified one, since the code only exists in the archetype
    // ontology on the side it's present on.
    private static String itemLabel(def item, def ownerNode = null, String field = null) {
-      if (item == null) return 'null'
+      if (item == null) return '-'
       if (item instanceof String) {
          if (field == 'codeList' && ownerNode) {
             def text = ownerNode.getOwnerArchetypeRoot()?.getText(item)
